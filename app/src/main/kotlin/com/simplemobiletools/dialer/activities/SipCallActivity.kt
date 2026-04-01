@@ -82,6 +82,9 @@ class SipCallActivity : SimpleActivity() {
         override fun onUnregistered() {}
     }
 
+    /** The wrapper's own listener, saved before we replace it, so we can restore it on destroy. */
+    private var previousStateListener: Receiver.StateListener? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -99,6 +102,9 @@ class SipCallActivity : SimpleActivity() {
         val displayNumber = if (isIncoming) callerUri else targetNumber
         binding.sipCallerUri.text = displayNumber
 
+        // Save whatever listener was registered (e.g. SipManagerWrapper's) so we can restore it
+        // when the call screen is destroyed.
+        previousStateListener = Receiver.stateListener
         Receiver.stateListener = stateListener
 
         if (isIncoming) {
@@ -150,6 +156,9 @@ class SipCallActivity : SimpleActivity() {
 
     override fun onDestroy() {
         durationHandler.removeCallbacks(durationRunnable)
+        // Restore the previous listener (SipManagerWrapper's) so registration/call-state
+        // events keep flowing after the call screen is gone.
+        Receiver.stateListener = previousStateListener
         super.onDestroy()
     }
 }

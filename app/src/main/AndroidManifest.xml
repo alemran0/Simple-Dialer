@@ -222,6 +222,11 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name="org.sipdroid.sipua.ui.LoopAlarm"
+            android:enabled="true"
+            android:exported="false" />
+
         <activity
             android:name=".activities.SipCallActivity"
             android:configChanges="orientation|screenSize"
