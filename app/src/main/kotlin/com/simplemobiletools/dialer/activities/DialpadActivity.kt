@@ -27,8 +27,10 @@ import com.simplemobiletools.commons.models.contacts.Contact
 import com.simplemobiletools.dialer.R
 import com.simplemobiletools.dialer.adapters.ContactsAdapter
 import com.simplemobiletools.dialer.databinding.ActivityDialpadBinding
+import com.simplemobiletools.dialer.dialogs.SelectCallAccountDialog
 import com.simplemobiletools.dialer.extensions.*
 import com.simplemobiletools.dialer.helpers.DIALPAD_TONE_LENGTH_MS
+import com.simplemobiletools.dialer.helpers.SipManagerWrapper
 import com.simplemobiletools.dialer.helpers.ToneGeneratorHelper
 import com.simplemobiletools.dialer.models.SpeedDial
 import java.util.*
@@ -329,7 +331,17 @@ class DialpadActivity : SimpleActivity() {
 
     private fun initCall(number: String = binding.dialpadInput.value, handleIndex: Int) {
         if (number.isNotEmpty()) {
-            if (handleIndex != -1 && areMultipleSIMsAvailable()) {
+            val sipWrapper = SipManagerWrapper.getInstance(this)
+            if (sipWrapper.isRegistered) {
+                // SIP is registered – offer SIM1/SIM2/SIP chooser
+                if (config.showCallConfirmation) {
+                    CallConfirmationDialog(this, number) {
+                        showCallAccountChooser(number)
+                    }
+                } else {
+                    showCallAccountChooser(number)
+                }
+            } else if (handleIndex != -1 && areMultipleSIMsAvailable()) {
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
                         callContactWithSim(number, handleIndex == 0)
@@ -345,6 +357,20 @@ class DialpadActivity : SimpleActivity() {
                 } else {
                     startCallIntent(number)
                 }
+            }
+        }
+    }
+
+    private fun showCallAccountChooser(number: String) {
+        val sipLabel = getString(R.string.sip_option_label, config.sipUsername + "@" + config.sipServer)
+        SelectCallAccountDialog(this, number, sipLabel) { handle, isSip ->
+            if (isSip) {
+                val callIntent = SipCallActivity.getOutgoingCallIntent(this, number)
+                startActivity(callIntent)
+            } else if (handle != null) {
+                launchCallIntent(number, handle)
+            } else {
+                startCallIntent(number)
             }
         }
     }

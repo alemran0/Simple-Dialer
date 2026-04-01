@@ -3,9 +3,12 @@ package com.simplemobiletools.dialer.activities
 import android.annotation.TargetApi
 import android.content.Intent
 import android.net.Uri
+import android.net.sip.SipManager
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.view.Menu
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import com.simplemobiletools.commons.activities.ManageBlockedNumbersActivity
 import com.simplemobiletools.commons.dialogs.ChangeDateTimeFormatDialog
@@ -20,7 +23,10 @@ import com.simplemobiletools.dialer.dialogs.ExportCallHistoryDialog
 import com.simplemobiletools.dialer.dialogs.ManageVisibleTabsDialog
 import com.simplemobiletools.dialer.extensions.config
 import com.simplemobiletools.dialer.helpers.RecentsHelper
+import com.simplemobiletools.dialer.helpers.SipRegistrationState
+import com.simplemobiletools.dialer.helpers.SipManagerWrapper
 import com.simplemobiletools.dialer.models.RecentCall
+import com.simplemobiletools.dialer.services.SipRegistrationService
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -47,6 +53,10 @@ class SettingsActivity : SimpleActivity() {
                 exportCallHistory(recents, uri)
             }
         }
+    }
+
+    private val sipStateListener: (SipRegistrationState) -> Unit = { state ->
+        runOnUiThread { updateSipStatusLabel(state) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,6 +96,7 @@ class SettingsActivity : SimpleActivity() {
         setupAlwaysShowFullscreen()
         setupCallsExport()
         setupCallsImport()
+        setupSipAccount()
         updateTextColors(binding.settingsHolder)
 
         binding.apply {
@@ -94,11 +105,19 @@ class SettingsActivity : SimpleActivity() {
                 settingsGeneralSettingsLabel,
                 settingsStartupLabel,
                 settingsCallsLabel,
-                settingsMigrationSectionLabel
+                settingsMigrationSectionLabel,
+                settingsSipSectionLabel
             ).forEach {
                 it.setTextColor(getProperPrimaryColor())
             }
         }
+
+        SipManagerWrapper.getInstance(this).addStateListener(sipStateListener)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        SipManagerWrapper.getInstance(this).removeStateListener(sipStateListener)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -378,5 +397,165 @@ class SettingsActivity : SimpleActivity() {
                 showErrorToast(e)
             }
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun setupSipAccount() {
+        val sipSupported = SipManager.isApiSupported(this) && SipManager.isVoIpSupported(this)
+
+        binding.apply {
+            // Enable toggle
+            settingsSipEnable.isChecked = config.sipEnabled
+            settingsSipEnableHolder.setOnClickListener {
+                if (!sipSupported) {
+                    toast(R.string.sip_not_supported)
+                    return@setOnClickListener
+                }
+                settingsSipEnable.toggle()
+                val enabled = settingsSipEnable.isChecked
+                config.sipEnabled = enabled
+                if (!enabled) {
+                    disconnectSip()
+                }
+            }
+
+            // Server
+            settingsSipServer.text = config.sipServer.ifEmpty { getString(R.string.sip_server) }
+            settingsSipServerHolder.setOnClickListener {
+                showSipTextInputDialog(getString(R.string.sip_server), config.sipServer, false) { newServer ->
+                    config.sipServer = newServer.trim()
+                    settingsSipServer.text = newServer.trim().ifEmpty { getString(R.string.sip_server) }
+                }
+            }
+
+            // Username
+            settingsSipUsername.text = config.sipUsername.ifEmpty { getString(R.string.sip_username) }
+            settingsSipUsernameHolder.setOnClickListener {
+                showSipTextInputDialog(getString(R.string.sip_username), config.sipUsername, false) { newUser ->
+                    config.sipUsername = newUser.trim()
+                    settingsSipUsername.text = newUser.trim().ifEmpty { getString(R.string.sip_username) }
+                }
+            }
+
+            // Password
+            settingsSipPassword.text = if (config.sipPassword.isNotEmpty()) "••••••••" else getString(R.string.sip_password)
+            settingsSipPasswordHolder.setOnClickListener {
+                showSipTextInputDialog(getString(R.string.sip_password), config.sipPassword, true) { newPass ->
+                    config.sipPassword = newPass
+                    settingsSipPassword.text = if (newPass.isNotEmpty()) "••••••••" else getString(R.string.sip_password)
+                }
+            }
+
+            // Background registration
+            settingsSipBgRegistration.isChecked = config.sipBackgroundRegistration
+            settingsSipBgRegistrationHolder.setOnClickListener {
+                settingsSipBgRegistration.toggle()
+                config.sipBackgroundRegistration = settingsSipBgRegistration.isChecked
+                if (config.sipBackgroundRegistration && SipManagerWrapper.getInstance(this@SettingsActivity).isRegistered) {
+                    startSipBackgroundService()
+                } else {
+                    stopSipBackgroundService()
+                }
+            }
+
+            // Status
+            if (sipSupported) {
+                updateSipStatusLabel(SipManagerWrapper.getInstance(this@SettingsActivity).registrationState)
+            } else {
+                settingsSipStatus.text = getString(R.string.sip_not_supported)
+            }
+
+            // Connect/Disconnect
+            updateSipConnectButton()
+            settingsSipConnectHolder.setOnClickListener {
+                if (!sipSupported) {
+                    toast(R.string.sip_not_supported)
+                    return@setOnClickListener
+                }
+                if (SipManagerWrapper.getInstance(this@SettingsActivity).isRegistered) {
+                    disconnectSip()
+                } else {
+                    connectSip()
+                }
+            }
+        }
+    }
+
+    private fun connectSip() {
+        if (config.sipServer.isBlank() || config.sipUsername.isBlank()) {
+            toast(R.string.sip_fill_required_fields)
+            return
+        }
+        if (!config.sipEnabled) {
+            config.sipEnabled = true
+            binding.settingsSipEnable.isChecked = true
+        }
+        SipManagerWrapper.getInstance(this).register { success, error ->
+            runOnUiThread {
+                if (success) {
+                    updateSipConnectButton()
+                    if (config.sipBackgroundRegistration) {
+                        startSipBackgroundService()
+                    }
+                } else {
+                    toast(error ?: getString(R.string.unknown_error_occurred))
+                }
+            }
+        }
+    }
+
+    private fun disconnectSip() {
+        stopSipBackgroundService()
+        SipManagerWrapper.getInstance(this).unregister()
+        updateSipConnectButton()
+    }
+
+    private fun updateSipStatusLabel(state: SipRegistrationState) {
+        binding.settingsSipStatus.text = when (state) {
+            SipRegistrationState.DISCONNECTED -> getString(R.string.sip_status_disconnected)
+            SipRegistrationState.CONNECTING -> getString(R.string.sip_status_connecting)
+            SipRegistrationState.REGISTERED -> getString(R.string.sip_status_registered)
+            SipRegistrationState.ERROR -> getString(R.string.sip_status_error)
+        }
+        updateSipConnectButton()
+    }
+
+    private fun updateSipConnectButton() {
+        val isRegistered = SipManagerWrapper.getInstance(this).isRegistered
+        binding.settingsSipConnect.text = if (isRegistered) getString(R.string.sip_disconnect) else getString(R.string.sip_connect)
+    }
+
+    private fun startSipBackgroundService() {
+        val intent = SipRegistrationService.getStartIntent(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun stopSipBackgroundService() {
+        stopService(SipRegistrationService.getStartIntent(this))
+    }
+
+    private fun showSipTextInputDialog(title: String, currentValue: String, isPassword: Boolean, callback: (String) -> Unit) {
+        val editText = EditText(this).apply {
+            setText(currentValue)
+            setSingleLine()
+            if (isPassword) {
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            val padding = resources.getDimensionPixelSize(R.dimen.activity_margin)
+            setPadding(padding, paddingTop, padding, paddingBottom)
+        }
+
+        getAlertDialogBuilder()
+            .setTitle(title)
+            .setView(editText)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                callback(editText.text.toString())
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 }
