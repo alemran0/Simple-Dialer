@@ -52,7 +52,7 @@ class SipManagerWrapper private constructor(private val context: Context) {
             Log.w(TAG, "SIP API not supported on this device")
             return
         }
-        if (!SipManager.isVoIPSupported(context)) {
+        if (!SipManager.isVoipSupported(context)) {
             Log.w(TAG, "VoIP not supported on this device")
             return
         }
