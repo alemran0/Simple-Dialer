@@ -3,7 +3,6 @@ package com.simplemobiletools.dialer.activities
 import android.annotation.TargetApi
 import android.content.Intent
 import android.net.Uri
-import android.net.sip.SipManager
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -401,7 +400,7 @@ class SettingsActivity : SimpleActivity() {
 
     @Suppress("DEPRECATION")
     private fun setupSipAccount() {
-        val sipSupported = SipManager.isApiSupported(this) && SipManager.isVoipSupported(this)
+        val sipSupported = true
 
         binding.apply {
             // Enable toggle
