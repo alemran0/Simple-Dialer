@@ -83,12 +83,6 @@ class SipCallActivity : SimpleActivity() {
             }
         }
 
-        override fun onRinging(call: SipAudioCall?, caller: android.net.sip.SipSession?) {
-            runOnUiThread {
-                binding.sipCallStatus.text = getString(R.string.is_calling)
-            }
-        }
-
         override fun onRingingBack(call: SipAudioCall?) {
             runOnUiThread {
                 binding.sipCallStatus.text = getString(R.string.dialing)

@@ -26,10 +26,6 @@ class SipCallReceiver : BroadcastReceiver() {
 
         try {
             val call = sipManager.takeAudioCall(intent, object : SipAudioCall.Listener() {
-                override fun onRinging(call: SipAudioCall?, caller: android.net.sip.SipSession?) {
-                    Log.d(TAG, "Incoming SIP call ringing from ${caller?.peerProfile?.uriString}")
-                }
-
                 override fun onError(call: SipAudioCall?, errorCode: Int, errorMessage: String?) {
                     Log.e(TAG, "SIP call error ($errorCode): $errorMessage")
                     call?.close()
