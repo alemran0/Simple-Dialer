@@ -47,6 +47,7 @@ public class Receiver extends BroadcastReceiver {
     public static final int MWI_NOTIFICATION = 10;
     public static final int CALL_NOTIFICATION = 11;
     public static final int AUTO_ANSWER_NOTIFICATION = 12;
+    public static final int MISSED_CALL_NOTIFICATION = 13;
 
     public static int docked = -1;
     public static int headset = -1;

@@ -36,4 +36,12 @@ public class Sipdroid {
     public static String getVersion(Context context) {
         return getVersion();
     }
+
+    public static boolean on(Context context) {
+        return true;
+    }
+
+    public static void on(Context context, boolean on) {
+        // No-op in stub
+    }
 }
