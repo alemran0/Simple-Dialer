@@ -91,7 +91,7 @@ android {
     }
 }
 
-configurations.all {
+configurations.configureEach {
     resolutionStrategy {
         force("com.github.duolingo:rtl-viewpager:v2.0.0")
     }
