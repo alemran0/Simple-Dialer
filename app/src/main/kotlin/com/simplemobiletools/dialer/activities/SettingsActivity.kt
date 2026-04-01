@@ -401,7 +401,7 @@ class SettingsActivity : SimpleActivity() {
 
     @Suppress("DEPRECATION")
     private fun setupSipAccount() {
-        val sipSupported = SipManager.isApiSupported(this) && SipManager.isVoIpSupported(this)
+        val sipSupported = SipManager.isApiSupported(this) && SipManager.isVoipSupported(this)
 
         binding.apply {
             // Enable toggle
