@@ -81,6 +81,34 @@
     <string name="export_call_history">Export call history</string>
     <string name="import_call_history">Import call history</string>
 
+    <!-- SIP Account -->
+    <string name="sip_account">SIP Account</string>
+    <string name="enable_sip">Enable SIP calling</string>
+    <string name="sip_server">SIP Server / Domain</string>
+    <string name="sip_username">SIP Username</string>
+    <string name="sip_password">SIP Password</string>
+    <string name="sip_display_name">Display Name (optional)</string>
+    <string name="sip_port">SIP Port</string>
+    <string name="sip_transport">Transport</string>
+    <string name="sip_background_registration">Keep registered in background</string>
+    <string name="sip_status">Registration status</string>
+    <string name="sip_status_disconnected">Disconnected</string>
+    <string name="sip_status_connecting">Connecting…</string>
+    <string name="sip_status_registered">Registered</string>
+    <string name="sip_status_error">Error</string>
+    <string name="sip_connect">Connect</string>
+    <string name="sip_disconnect">Disconnect</string>
+    <string name="sip_fill_required_fields">Please fill in Server and Username</string>
+    <string name="sip_not_supported">SIP / VoIP is not supported on this device</string>
+    <string name="sip_registration_active">SIP registration active</string>
+    <string name="sip_registration_running_in_background">SIP account is registered in the background</string>
+    <string name="sip_registration_channel_name">SIP Registration</string>
+    <string name="sip_registration_channel_description">Keeps SIP account registered in the background</string>
+    <string name="sip_call_channel_name">SIP Calls</string>
+    <string name="sip_call_channel_description">Notifications for incoming SIP calls</string>
+    <string name="sip_option_label">SIP (%1$s)</string>
+    <string name="incoming_sip_call">Incoming SIP Call</string>
+
     <!-- FAQ -->
     <string name="faq_1_title">I hear incoming calls, but the screen doesn\'t turn on. What can I do?</string>
     <string name="faq_1_text">Such issues can have many device and system specific reasons, hard to say in general. You should look around in your device settings and make sure that the app is allowed to pop up when in background and allow displaying over other apps.</string>

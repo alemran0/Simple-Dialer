@@ -89,4 +89,36 @@ class Config(context: Context) : BaseConfig(context) {
     var alwaysShowFullscreen: Boolean
         get() = prefs.getBoolean(ALWAYS_SHOW_FULLSCREEN, false)
         set(alwaysShowFullscreen) = prefs.edit().putBoolean(ALWAYS_SHOW_FULLSCREEN, alwaysShowFullscreen).apply()
+
+    var sipEnabled: Boolean
+        get() = prefs.getBoolean(SIP_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(SIP_ENABLED, value).apply()
+
+    var sipServer: String
+        get() = prefs.getString(SIP_SERVER, "") ?: ""
+        set(value) = prefs.edit().putString(SIP_SERVER, value).apply()
+
+    var sipUsername: String
+        get() = prefs.getString(SIP_USERNAME, "") ?: ""
+        set(value) = prefs.edit().putString(SIP_USERNAME, value).apply()
+
+    var sipPassword: String
+        get() = prefs.getString(SIP_PASSWORD, "") ?: ""
+        set(value) = prefs.edit().putString(SIP_PASSWORD, value).apply()
+
+    var sipDisplayName: String
+        get() = prefs.getString(SIP_DISPLAY_NAME, "") ?: ""
+        set(value) = prefs.edit().putString(SIP_DISPLAY_NAME, value).apply()
+
+    var sipPort: Int
+        get() = prefs.getInt(SIP_PORT, 5060)
+        set(value) = prefs.edit().putInt(SIP_PORT, value).apply()
+
+    var sipTransport: String
+        get() = prefs.getString(SIP_TRANSPORT, "UDP") ?: "UDP"
+        set(value) = prefs.edit().putString(SIP_TRANSPORT, value).apply()
+
+    var sipBackgroundRegistration: Boolean
+        get() = prefs.getBoolean(SIP_BACKGROUND_REGISTRATION, false)
+        set(value) = prefs.edit().putBoolean(SIP_BACKGROUND_REGISTRATION, value).apply()
 }

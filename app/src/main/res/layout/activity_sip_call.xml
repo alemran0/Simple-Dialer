@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sip_call_holder"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.simplemobiletools.commons.views.MyTextView
+        android:id="@+id/sip_caller_uri"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingStart="@dimen/medium_margin"
+        android:paddingEnd="@dimen/medium_margin"
+        android:textSize="@dimen/caller_name_text_size"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.25"
+        app:layout_constraintBottom_toTopOf="@+id/sip_call_status"
+        tools:text="user@sip.example.com" />
+
+    <com.simplemobiletools.commons.views.MyTextView
+        android:id="@+id/sip_call_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/normal_margin"
+        android:gravity="center_horizontal"
+        android:textSize="@dimen/call_status_text_size"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sip_caller_uri"
+        tools:text="Dialing…" />
+
+    <com.simplemobiletools.commons.views.MyTextView
+        android:id="@+id/sip_call_duration"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/small_margin"
+        android:gravity="center_horizontal"
+        android:textSize="@dimen/call_status_text_size"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sip_call_status"
+        tools:text="00:00" />
+
+    <ImageView
+        android:id="@+id/sip_call_accept_button"
+        android:layout_width="@dimen/incoming_call_button_size"
+        android:layout_height="@dimen/incoming_call_button_size"
+        android:layout_marginEnd="@dimen/activity_margin"
+        android:background="@drawable/ic_call_accept"
+        android:contentDescription="@string/accept_call"
+        android:padding="@dimen/medium_margin"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/sip_call_end_button"
+        app:layout_constraintVertical_bias="0.85"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/sip_call_end_button"
+        android:layout_width="@dimen/incoming_call_button_size"
+        android:layout_height="@dimen/incoming_call_button_size"
+        android:background="@drawable/ic_phone_down_red_vector"
+        android:contentDescription="@string/end_call"
+        android:padding="@dimen/medium_margin"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.85" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

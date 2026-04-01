@@ -434,6 +434,155 @@
                     android:text="@string/import_call_history" />
 
             </RelativeLayout>
+
+            <include
+                android:id="@+id/settings_sip_divider"
+                layout="@layout/divider" />
+
+            <TextView
+                android:id="@+id/settings_sip_section_label"
+                style="@style/SettingsSectionLabelStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sip_account" />
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_enable_holder"
+                style="@style/SettingsHolderCheckboxStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyAppCompatCheckbox
+                    android:id="@+id/settings_sip_enable"
+                    style="@style/SettingsCheckboxStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enable_sip" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_server_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_server_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_server" />
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_server"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_sip_server_label"
+                    android:hint="@string/sip_server"
+                    tools:text="sip.example.com"
+                    xmlns:tools="http://schemas.android.com/tools" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_username_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_username_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_username" />
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_username"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_sip_username_label"
+                    android:hint="@string/sip_username" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_password_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_password_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_password" />
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_password"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_sip_password_label"
+                    android:hint="@string/sip_password" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_bg_registration_holder"
+                style="@style/SettingsHolderCheckboxStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyAppCompatCheckbox
+                    android:id="@+id/settings_sip_bg_registration"
+                    style="@style/SettingsCheckboxStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_background_registration" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_status_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_status_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_status" />
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_status"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_sip_status_label" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_sip_connect_holder"
+                style="@style/SettingsHolderTextViewOneLinerStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.simplemobiletools.commons.views.MyTextView
+                    android:id="@+id/settings_sip_connect"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sip_connect" />
+
+            </RelativeLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

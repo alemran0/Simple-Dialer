@@ -21,3 +21,8 @@
     public static <1> INSTANCE;
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# Keep SIP-related classes
+-keep class android.net.sip.** { *; }
+-keep class com.simplemobiletools.dialer.helpers.SipManagerWrapper { *; }
+-keep class com.simplemobiletools.dialer.helpers.SipRegistrationState { *; }
