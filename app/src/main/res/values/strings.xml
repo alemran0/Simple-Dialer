@@ -109,6 +109,31 @@
     <string name="sip_option_label">SIP (%1$s)</string>
     <string name="incoming_sip_call">Incoming SIP Call</string>
 
+    <!-- Sipdroid SIP stack resources -->
+    <string name="card_title_ended_no_codec">Call ended: no compatible codec</string>
+    <string name="unreg">Unregistered</string>
+    <string name="reg">Registered</string>
+    <string name="regfailed">Registration failed</string>
+    <string name="regpref">Registered (preferred)</string>
+    <string name="regclick">Registered (click to switch)</string>
+    <string name="voicemail">Voicemail</string>
+    <string name="help_speakerphone">Tap to toggle speakerphone</string>
+    <string name="card_title_on_hold">Call on hold</string>
+    <string name="card_title_in_progress">Call in progress</string>
+    <string name="card_title_dialing">Dialing…</string>
+    <string name="card_title_incoming_call">Incoming call</string>
+    <string name="menu_speaker">Speaker</string>
+    <string name="menu_bluetooth">Bluetooth</string>
+    <string name="menu_mute">Mute</string>
+    <string name="auto_disabled">Auto-answer disabled</string>
+    <string name="auto_enabled">Auto-answer enabled</string>
+    <string name="settings_improve2">improved</string>
+    <string name="settings_hdvoice">HD Voice</string>
+    <string name="codecs_move">Move codec</string>
+    <string name="codecs_move_up">Move up</string>
+    <string name="codecs_move_down">Move down</string>
+    <string name="unknown">Unknown</string>
+
     <!-- FAQ -->
     <string name="faq_1_title">I hear incoming calls, but the screen doesn\'t turn on. What can I do?</string>
     <string name="faq_1_text">Such issues can have many device and system specific reasons, hard to say in general. You should look around in your device settings and make sure that the app is allowed to pop up when in background and allow displaying over other apps.</string>

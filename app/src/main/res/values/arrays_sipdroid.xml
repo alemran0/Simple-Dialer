@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stub array resources for sipdroid codec settings -->
+<resources>
+    <string-array name="compression_display_values">
+        <item>Never</item>
+        <item>Always</item>
+        <item>When roaming</item>
+    </string-array>
+    <string-array name="compression_values">
+        <item>never</item>
+        <item>always</item>
+        <item>roaming</item>
+    </string-array>
+</resources>

@@ -1,13 +1,14 @@
 package com.simplemobiletools.dialer.helpers
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.net.sip.SipAudioCall
-import android.net.sip.SipManager
-import android.net.sip.SipProfile
-import android.net.sip.SipRegistrationListener
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import android.util.Log
+import com.simplemobiletools.dialer.activities.SipCallActivity
 import com.simplemobiletools.dialer.extensions.config
+import org.sipdroid.sipua.UserAgent
+import org.sipdroid.sipua.ui.Receiver
+import org.sipdroid.sipua.ui.Settings
 
 enum class SipRegistrationState {
     DISCONNECTED, CONNECTING, REGISTERED, ERROR
@@ -18,7 +19,6 @@ class SipManagerWrapper private constructor(private val context: Context) {
 
     companion object {
         private const val TAG = "SipManagerWrapper"
-        private const val REGISTRATION_EXPIRY_SECONDS = 600
         const val CALL_TIMEOUT_SECONDS = 30
 
         @Volatile
@@ -31,32 +31,37 @@ class SipManagerWrapper private constructor(private val context: Context) {
         }
     }
 
-    private var sipManager: SipManager? = null
-    private var sipProfile: SipProfile? = null
-
     @Volatile
     var registrationState: SipRegistrationState = SipRegistrationState.DISCONNECTED
         private set
 
     private val stateListeners = mutableListOf<(SipRegistrationState) -> Unit>()
 
-    var activeAudioCall: SipAudioCall? = null
-        private set
-
     val isRegistered: Boolean
         get() = registrationState == SipRegistrationState.REGISTERED
 
-    @SuppressLint("MissingPermission")
-    fun initialize() {
-        if (!SipManager.isApiSupported(context)) {
-            Log.w(TAG, "SIP API not supported on this device")
-            return
+    init {
+        Receiver.stateListener = object : Receiver.StateListener {
+            override fun onCallStateChanged(state: Int, caller: String?) {
+                when (state) {
+                    UserAgent.UA_STATE_INCOMING_CALL -> {
+                        val callIntent = SipCallActivity.getIncomingCallIntent(context, caller ?: "")
+                        callIntent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        context.startActivity(callIntent)
+                    }
+                    else -> {}
+                }
+            }
+
+            override fun onRegistered() {
+                notifyStateChanged(SipRegistrationState.REGISTERED)
+            }
+
+            override fun onUnregistered() {
+                notifyStateChanged(SipRegistrationState.DISCONNECTED)
+            }
         }
-        if (!SipManager.isVoipSupported(context)) {
-            Log.w(TAG, "VoIP not supported on this device")
-            return
-        }
-        sipManager = SipManager.newInstance(context)
     }
 
     fun addStateListener(listener: (SipRegistrationState) -> Unit) {
@@ -77,7 +82,28 @@ class SipManagerWrapper private constructor(private val context: Context) {
         listeners.forEach { it(state) }
     }
 
-    @SuppressLint("MissingPermission")
+    private fun writeSipConfigToPrefs() {
+        val cfg = context.config
+        val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        prefs.edit().apply {
+            putString(Settings.PREF_USERNAME, cfg.sipUsername)
+            putString(Settings.PREF_PASSWORD, cfg.sipPassword)
+            putString(Settings.PREF_SERVER, cfg.sipServer)
+            putString(Settings.PREF_DOMAIN, cfg.sipServer)
+            putString(Settings.PREF_PORT, cfg.sipPort.toString())
+            putString(Settings.PREF_PROTOCOL, cfg.sipTransport.lowercase())
+            putString(Settings.PREF_FROMUSER, if (cfg.sipDisplayName.isNotBlank()) cfg.sipDisplayName else "")
+            putBoolean(Settings.PREF_WLAN, true)
+            putBoolean(Settings.PREF_3G, true)
+            putBoolean(Settings.PREF_4G, true)
+            putBoolean(Settings.PREF_MWI_ENABLED, false)
+        }.apply()
+    }
+
+    fun initialize() {
+        Receiver.mContext = context
+    }
+
     fun register(callback: (success: Boolean, error: String?) -> Unit = { _, _ -> }) {
         val cfg = context.config
         if (!cfg.sipEnabled || cfg.sipServer.isBlank() || cfg.sipUsername.isBlank()) {
@@ -85,48 +111,15 @@ class SipManagerWrapper private constructor(private val context: Context) {
             return
         }
 
-        if (sipManager == null) {
-            initialize()
-        }
-        val manager = sipManager ?: run {
-            callback(false, "SIP not supported")
-            return
-        }
-
         try {
-            unregisterInternal()
-
-            val profileBuilder = SipProfile.Builder(cfg.sipUsername, cfg.sipServer)
-                .setPassword(cfg.sipPassword)
-                .setPort(cfg.sipPort)
-
-            if (cfg.sipDisplayName.isNotBlank()) {
-                profileBuilder.setDisplayName(cfg.sipDisplayName)
-            }
-
-            val profile = profileBuilder.build()
-            sipProfile = profile
-
+            writeSipConfigToPrefs()
+            Receiver.mContext = context
             notifyStateChanged(SipRegistrationState.CONNECTING)
 
-            manager.register(profile, REGISTRATION_EXPIRY_SECONDS, object : SipRegistrationListener {
-                override fun onRegistering(localProfileUri: String?) {
-                    Log.d(TAG, "SIP registering: $localProfileUri")
-                    notifyStateChanged(SipRegistrationState.CONNECTING)
-                }
-
-                override fun onRegistrationDone(localProfileUri: String?, expiryTime: Long) {
-                    Log.d(TAG, "SIP registered: $localProfileUri, expiry: $expiryTime")
-                    notifyStateChanged(SipRegistrationState.REGISTERED)
-                    callback(true, null)
-                }
-
-                override fun onRegistrationFailed(localProfileUri: String?, errorCode: Int, errorMessage: String?) {
-                    Log.e(TAG, "SIP registration failed ($errorCode): $errorMessage")
-                    notifyStateChanged(SipRegistrationState.ERROR)
-                    callback(false, errorMessage)
-                }
-            })
+            val engine = Receiver.engine(context)
+            engine.StartEngine()
+            // Registration happens asynchronously; Receiver.registered() will call our stateListener
+            callback(true, null)
         } catch (e: Exception) {
             Log.e(TAG, "SIP register exception", e)
             notifyStateChanged(SipRegistrationState.ERROR)
@@ -134,74 +127,54 @@ class SipManagerWrapper private constructor(private val context: Context) {
         }
     }
 
-    @SuppressLint("MissingPermission")
     fun unregister() {
-        unregisterInternal()
-        notifyStateChanged(SipRegistrationState.DISCONNECTED)
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun unregisterInternal() {
         try {
-            activeAudioCall?.close()
-            activeAudioCall = null
-
-            val profile = sipProfile
-            val manager = sipManager
-            if (profile != null && manager != null) {
-                manager.unregister(profile, null)
-            }
-            try {
-                profile?.let { manager?.close(it.uriString) }
-            } catch (ignored: Exception) {
-            }
-            sipProfile = null
+            val engine = Receiver.mSipdroidEngine
+            engine?.halt()
         } catch (e: Exception) {
             Log.e(TAG, "SIP unregister exception", e)
         }
+        notifyStateChanged(SipRegistrationState.DISCONNECTED)
     }
 
-    @SuppressLint("MissingPermission")
-    fun placeCall(targetNumber: String, listener: SipAudioCall.Listener?) {
-        val manager = sipManager ?: return
-        val profile = sipProfile ?: return
-
+    fun placeCall(targetNumber: String) {
+        val server = context.config.sipServer
         val targetUri = if (targetNumber.startsWith("sip:")) {
             targetNumber
         } else {
-            val server = context.config.sipServer
             "sip:$targetNumber@$server"
         }
 
         try {
-            val call = manager.makeAudioCall(
-                profile.uriString,
-                targetUri,
-                listener,
-                CALL_TIMEOUT_SECONDS
-            )
-            activeAudioCall = call
+            writeSipConfigToPrefs()
+            Receiver.mContext = context
+            val engine = Receiver.engine(context)
+            if (!engine.isRegistered(0)) {
+                engine.StartEngine()
+            }
+            engine.call(targetUri, false)
         } catch (e: Exception) {
-            Log.e(TAG, "SIP makeAudioCall exception", e)
+            Log.e(TAG, "SIP placeCall exception", e)
         }
     }
 
-    fun endActiveCall() {
+    fun answerCall() {
         try {
-            activeAudioCall?.endCall()
-            activeAudioCall?.close()
-            activeAudioCall = null
+            Receiver.mSipdroidEngine?.answercall()
+        } catch (e: Exception) {
+            Log.e(TAG, "SIP answerCall exception", e)
+        }
+    }
+
+    fun endCall() {
+        try {
+            Receiver.mSipdroidEngine?.ua?.hangup()
         } catch (e: Exception) {
             Log.e(TAG, "SIP endCall exception", e)
         }
     }
 
-    fun setActiveCall(call: SipAudioCall) {
-        activeAudioCall = call
-    }
-
-    @Suppress("DEPRECATION")
-    fun attachCallListener(listener: SipAudioCall.Listener) {
-        activeAudioCall?.setListener(listener)
+    fun getCurrentCallState(): Int {
+        return Receiver.call_state
     }
 }

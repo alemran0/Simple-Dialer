@@ -22,7 +22,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.USE_SIP" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
@@ -33,10 +32,6 @@
     <uses-permission
         android:name="android.permission.USE_FINGERPRINT"
         tools:node="remove" />
-
-    <uses-feature
-        android:name="android.software.sip.voip"
-        android:required="false" />
 
     <uses-feature
         android:name="android.hardware.microphone"
@@ -226,6 +221,11 @@
                 <action android:name="com.simplemobiletools.dialer.sip.incoming_call" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name="org.sipdroid.sipua.ui.LoopAlarm"
+            android:enabled="true"
+            android:exported="false" />
 
         <activity
             android:name=".activities.SipCallActivity"

@@ -2,20 +2,20 @@ package com.simplemobiletools.dialer.activities
 
 import android.content.Context
 import android.content.Intent
-import android.net.sip.SipAudioCall
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
 import com.simplemobiletools.commons.extensions.toast
 import com.simplemobiletools.commons.extensions.viewBinding
 import com.simplemobiletools.dialer.R
 import com.simplemobiletools.dialer.databinding.ActivitySipCallBinding
 import com.simplemobiletools.dialer.helpers.SipManagerWrapper
-import com.simplemobiletools.dialer.helpers.SipManagerWrapper.Companion.CALL_TIMEOUT_SECONDS
+import org.sipdroid.sipua.UserAgent
+import org.sipdroid.sipua.ui.Receiver
 
-@Suppress("DEPRECATION")
 class SipCallActivity : SimpleActivity() {
 
     companion object {
@@ -55,46 +55,40 @@ class SipCallActivity : SimpleActivity() {
         }
     }
 
-    private val callListener = object : SipAudioCall.Listener() {
-        override fun onCallEstablished(call: SipAudioCall?) {
-            Log.d(TAG, "SIP call established")
+    private val stateListener = object : Receiver.StateListener {
+        override fun onCallStateChanged(state: Int, caller: String?) {
             runOnUiThread {
-                binding.sipCallStatus.text = getString(R.string.ongoing_call)
-                binding.sipCallAcceptButton.visibility = android.view.View.GONE
-                durationHandler.post(durationRunnable)
-            }
-            call?.startAudio()
-            call?.setSpeakerMode(false)
-        }
-
-        override fun onCallEnded(call: SipAudioCall?) {
-            Log.d(TAG, "SIP call ended")
-            runOnUiThread {
-                binding.sipCallStatus.text = getString(R.string.call_ended)
-                finishCall()
-            }
-        }
-
-        override fun onError(call: SipAudioCall?, errorCode: Int, errorMessage: String?) {
-            Log.e(TAG, "SIP call error ($errorCode): $errorMessage")
-            runOnUiThread {
-                toast(R.string.unknown_error_occurred)
-                finishCall()
+                when (state) {
+                    UserAgent.UA_STATE_INCALL -> {
+                        binding.sipCallStatus.text = getString(R.string.ongoing_call)
+                        binding.sipCallAcceptButton.visibility = View.GONE
+                        durationHandler.post(durationRunnable)
+                    }
+                    UserAgent.UA_STATE_IDLE -> {
+                        binding.sipCallStatus.text = getString(R.string.call_ended)
+                        finishCall()
+                    }
+                    UserAgent.UA_STATE_OUTGOING_CALL -> {
+                        binding.sipCallStatus.text = getString(R.string.dialing)
+                    }
+                    UserAgent.UA_STATE_INCOMING_CALL -> {
+                        binding.sipCallStatus.text = getString(R.string.is_calling)
+                    }
+                }
             }
         }
 
-        override fun onRingingBack(call: SipAudioCall?) {
-            runOnUiThread {
-                binding.sipCallStatus.text = getString(R.string.dialing)
-            }
-        }
+        override fun onRegistered() {}
+        override fun onUnregistered() {}
     }
+
+    /** The wrapper's own listener, saved before we replace it, so we can restore it on destroy. */
+    private var previousStateListener: Receiver.StateListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        // Keep screen on and show over lock screen
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
@@ -108,15 +102,18 @@ class SipCallActivity : SimpleActivity() {
         val displayNumber = if (isIncoming) callerUri else targetNumber
         binding.sipCallerUri.text = displayNumber
 
+        // Save whatever listener was registered (e.g. SipManagerWrapper's) so we can restore it
+        // when the call screen is destroyed.
+        previousStateListener = Receiver.stateListener
+        Receiver.stateListener = stateListener
+
         if (isIncoming) {
             binding.sipCallStatus.text = getString(R.string.is_calling)
-            binding.sipCallAcceptButton.visibility = android.view.View.VISIBLE
+            binding.sipCallAcceptButton.visibility = View.VISIBLE
             binding.sipCallAcceptButton.setOnClickListener { acceptIncomingCall() }
-            // Attach this activity's listener to the incoming call stored by SipCallReceiver
-            sipWrapper.attachCallListener(callListener)
         } else {
             binding.sipCallStatus.text = getString(R.string.dialing)
-            binding.sipCallAcceptButton.visibility = android.view.View.GONE
+            binding.sipCallAcceptButton.visibility = View.GONE
             startOutgoingCall()
         }
 
@@ -124,22 +121,14 @@ class SipCallActivity : SimpleActivity() {
     }
 
     private fun startOutgoingCall() {
-        sipWrapper.placeCall(targetNumber, callListener)
-        binding.sipCallStatus.text = getString(R.string.dialing)
+        sipWrapper.placeCall(targetNumber)
     }
 
     private fun acceptIncomingCall() {
         try {
-            val call = sipWrapper.activeAudioCall ?: run {
-                toast(R.string.unknown_error_occurred)
-                finishCall()
-                return
-            }
-            call.answerCall(CALL_TIMEOUT_SECONDS)
-            call.startAudio()
-            call.setSpeakerMode(false)
+            sipWrapper.answerCall()
             binding.sipCallStatus.text = getString(R.string.ongoing_call)
-            binding.sipCallAcceptButton.visibility = android.view.View.GONE
+            binding.sipCallAcceptButton.visibility = View.GONE
             durationHandler.post(durationRunnable)
         } catch (e: Exception) {
             Log.e(TAG, "Error accepting SIP call", e)
@@ -149,7 +138,7 @@ class SipCallActivity : SimpleActivity() {
     }
 
     private fun endCall() {
-        sipWrapper.endActiveCall()
+        sipWrapper.endCall()
         finishCall()
     }
 
@@ -157,7 +146,7 @@ class SipCallActivity : SimpleActivity() {
         val minutes = callDurationSeconds / 60
         val seconds = callDurationSeconds % 60
         binding.sipCallDuration.text = String.format("%02d:%02d", minutes, seconds)
-        binding.sipCallDuration.visibility = android.view.View.VISIBLE
+        binding.sipCallDuration.visibility = View.VISIBLE
     }
 
     private fun finishCall() {
@@ -167,6 +156,9 @@ class SipCallActivity : SimpleActivity() {
 
     override fun onDestroy() {
         durationHandler.removeCallbacks(durationRunnable)
+        // Restore the previous listener (SipManagerWrapper's) so registration/call-state
+        // events keep flowing after the call screen is gone.
+        Receiver.stateListener = previousStateListener
         super.onDestroy()
     }
 }
