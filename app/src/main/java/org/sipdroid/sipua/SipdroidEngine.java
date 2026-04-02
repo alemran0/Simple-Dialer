@@ -485,6 +485,7 @@ public class SipdroidEngine implements RegisterAgentListener {
 		if (!Thread.currentThread().getName().equals("main"))
 			updateDNS();
 		reg_ra.stopMWI();
+		Receiver.failed(result != null ? result : "Registration failed");
 	}
 	
 	public void updateDNS() {

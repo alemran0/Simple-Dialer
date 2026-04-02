@@ -2,6 +2,8 @@ package com.simplemobiletools.dialer.helpers
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import android.preference.PreferenceManager
 import android.util.Log
 import com.simplemobiletools.dialer.activities.SipCallActivity
@@ -20,6 +22,7 @@ class SipManagerWrapper private constructor(private val context: Context) {
     companion object {
         private const val TAG = "SipManagerWrapper"
         const val CALL_TIMEOUT_SECONDS = 30
+        private const val REGISTRATION_TIMEOUT_MS = 30_000L
 
         @Volatile
         private var instance: SipManagerWrapper? = null
@@ -40,6 +43,14 @@ class SipManagerWrapper private constructor(private val context: Context) {
     val isRegistered: Boolean
         get() = registrationState == SipRegistrationState.REGISTERED
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val registrationTimeoutRunnable = Runnable {
+        if (registrationState == SipRegistrationState.CONNECTING) {
+            Log.w(TAG, "SIP registration timeout after ${REGISTRATION_TIMEOUT_MS / 1000}s - no response from server")
+            notifyStateChanged(SipRegistrationState.ERROR)
+        }
+    }
+
     init {
         Receiver.stateListener = object : Receiver.StateListener {
             override fun onCallStateChanged(state: Int, caller: String?) {
@@ -55,11 +66,18 @@ class SipManagerWrapper private constructor(private val context: Context) {
             }
 
             override fun onRegistered() {
+                Log.i(TAG, "SIP registered successfully")
                 notifyStateChanged(SipRegistrationState.REGISTERED)
             }
 
             override fun onUnregistered() {
+                Log.i(TAG, "SIP unregistered")
                 notifyStateChanged(SipRegistrationState.DISCONNECTED)
+            }
+
+            override fun onRegistrationFailed(reason: String) {
+                Log.w(TAG, "SIP registration failed: $reason")
+                notifyStateChanged(SipRegistrationState.ERROR)
             }
         }
     }
@@ -77,6 +95,10 @@ class SipManagerWrapper private constructor(private val context: Context) {
     }
 
     private fun notifyStateChanged(state: SipRegistrationState) {
+        // Cancel the timeout once we leave the CONNECTING state
+        if (state != SipRegistrationState.CONNECTING) {
+            mainHandler.removeCallbacks(registrationTimeoutRunnable)
+        }
         registrationState = state
         val listeners = synchronized(stateListeners) { stateListeners.toList() }
         listeners.forEach { it(state) }
@@ -107,6 +129,7 @@ class SipManagerWrapper private constructor(private val context: Context) {
     fun register(callback: (success: Boolean, error: String?) -> Unit = { _, _ -> }) {
         val cfg = context.config
         if (!cfg.sipEnabled || cfg.sipServer.isBlank() || cfg.sipUsername.isBlank()) {
+            Log.w(TAG, "SIP register skipped: not configured (enabled=${cfg.sipEnabled}, server=${if (cfg.sipServer.isBlank()) "<empty>" else "<set>"}, user=${if (cfg.sipUsername.isBlank()) "<empty>" else "<set>"})")
             callback(false, "SIP not configured")
             return
         }
@@ -115,10 +138,16 @@ class SipManagerWrapper private constructor(private val context: Context) {
             writeSipConfigToPrefs()
             Receiver.mContext = context
             notifyStateChanged(SipRegistrationState.CONNECTING)
+            Log.i(TAG, "SIP registration starting: server=${cfg.sipServer}, protocol=${cfg.sipTransport}")
+
+            // Arm a finite timeout so we never stay in CONNECTING indefinitely
+            mainHandler.removeCallbacks(registrationTimeoutRunnable)
+            mainHandler.postDelayed(registrationTimeoutRunnable, REGISTRATION_TIMEOUT_MS)
 
             val engine = Receiver.engine(context)
             engine.StartEngine()
-            // Registration happens asynchronously; Receiver.registered() will call our stateListener
+            // Registration happens asynchronously; Receiver.registered() / Receiver.failed()
+            // will call our stateListener once the SIP stack has a result.
             callback(true, null)
         } catch (e: Exception) {
             Log.e(TAG, "SIP register exception", e)
@@ -128,9 +157,11 @@ class SipManagerWrapper private constructor(private val context: Context) {
     }
 
     fun unregister() {
+        mainHandler.removeCallbacks(registrationTimeoutRunnable)
         try {
             val engine = Receiver.mSipdroidEngine
             engine?.halt()
+            Log.i(TAG, "SIP engine halted")
         } catch (e: Exception) {
             Log.e(TAG, "SIP unregister exception", e)
         }
