@@ -95,7 +95,7 @@
     <string name="sip_status_disconnected">Disconnected</string>
     <string name="sip_status_connecting">Connecting…</string>
     <string name="sip_status_registered">Registered</string>
-    <string name="sip_status_error">Error</string>
+    <string name="sip_status_failed">Registration failed</string>
     <string name="sip_connect">Connect</string>
     <string name="sip_disconnect">Disconnect</string>
     <string name="sip_fill_required_fields">Please fill in Server and Username</string>

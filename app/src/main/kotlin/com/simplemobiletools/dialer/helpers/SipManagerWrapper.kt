@@ -2,6 +2,8 @@ package com.simplemobiletools.dialer.helpers
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Handler
+import android.os.Looper
 import android.preference.PreferenceManager
 import android.util.Log
 import com.simplemobiletools.dialer.activities.SipCallActivity
@@ -11,7 +13,7 @@ import org.sipdroid.sipua.ui.Receiver
 import org.sipdroid.sipua.ui.Settings
 
 enum class SipRegistrationState {
-    DISCONNECTED, CONNECTING, REGISTERED, ERROR
+    DISCONNECTED, CONNECTING, REGISTERED, FAILED
 }
 
 @Suppress("DEPRECATION")
@@ -20,6 +22,14 @@ class SipManagerWrapper private constructor(private val context: Context) {
     companion object {
         private const val TAG = "SipManagerWrapper"
         const val CALL_TIMEOUT_SECONDS = 30
+
+        /**
+         * Maximum time (ms) to wait for a REGISTER response before declaring failure.
+         * SIP REGISTER transactions use a 30-second timer internally (see RegisterAgent),
+         * so 25 seconds is chosen to surface a failure to the user before the engine's
+         * own timeout, giving a clear "failed" state rather than an indefinite "connecting".
+         */
+        private const val REGISTRATION_TIMEOUT_MS = 25_000L
 
         @Volatile
         private var instance: SipManagerWrapper? = null
@@ -36,6 +46,17 @@ class SipManagerWrapper private constructor(private val context: Context) {
         private set
 
     private val stateListeners = mutableListOf<(SipRegistrationState) -> Unit>()
+
+    /** Watchdog that fires if registration doesn't complete within [REGISTRATION_TIMEOUT_MS].
+     *  Uses the main looper intentionally: all StateListener callbacks (notification updates,
+     *  UI label changes) are lightweight and must run on the main thread. */
+    private val registrationTimeoutHandler = Handler(Looper.getMainLooper())
+    private val registrationTimeoutRunnable = Runnable {
+        if (registrationState == SipRegistrationState.CONNECTING) {
+            Log.w(TAG, "Registration timed out after ${REGISTRATION_TIMEOUT_MS / 1000}s")
+            notifyStateChanged(SipRegistrationState.FAILED)
+        }
+    }
 
     val isRegistered: Boolean
         get() = registrationState == SipRegistrationState.REGISTERED
@@ -55,11 +76,21 @@ class SipManagerWrapper private constructor(private val context: Context) {
             }
 
             override fun onRegistered() {
+                Log.i(TAG, "SIP registration successful")
+                cancelRegistrationTimeout()
                 notifyStateChanged(SipRegistrationState.REGISTERED)
             }
 
             override fun onUnregistered() {
+                Log.i(TAG, "SIP unregistered")
+                cancelRegistrationTimeout()
                 notifyStateChanged(SipRegistrationState.DISCONNECTED)
+            }
+
+            override fun onRegistrationFailed(reason: String) {
+                Log.w(TAG, "SIP registration failed: $reason")
+                cancelRegistrationTimeout()
+                notifyStateChanged(SipRegistrationState.FAILED)
             }
         }
     }
@@ -78,8 +109,18 @@ class SipManagerWrapper private constructor(private val context: Context) {
 
     private fun notifyStateChanged(state: SipRegistrationState) {
         registrationState = state
+        Log.d(TAG, "Registration state → $state")
         val listeners = synchronized(stateListeners) { stateListeners.toList() }
         listeners.forEach { it(state) }
+    }
+
+    private fun scheduleRegistrationTimeout() {
+        registrationTimeoutHandler.removeCallbacks(registrationTimeoutRunnable)
+        registrationTimeoutHandler.postDelayed(registrationTimeoutRunnable, REGISTRATION_TIMEOUT_MS)
+    }
+
+    private fun cancelRegistrationTimeout() {
+        registrationTimeoutHandler.removeCallbacks(registrationTimeoutRunnable)
     }
 
     private fun writeSipConfigToPrefs() {
@@ -114,7 +155,9 @@ class SipManagerWrapper private constructor(private val context: Context) {
         try {
             writeSipConfigToPrefs()
             Receiver.mContext = context
+            Log.d(TAG, "Starting SIP registration: user=${cfg.sipUsername} server=${cfg.sipServer}:${cfg.sipPort} transport=${cfg.sipTransport}")
             notifyStateChanged(SipRegistrationState.CONNECTING)
+            scheduleRegistrationTimeout()
 
             val engine = Receiver.engine(context)
             engine.StartEngine()
@@ -122,12 +165,14 @@ class SipManagerWrapper private constructor(private val context: Context) {
             callback(true, null)
         } catch (e: Exception) {
             Log.e(TAG, "SIP register exception", e)
-            notifyStateChanged(SipRegistrationState.ERROR)
+            cancelRegistrationTimeout()
+            notifyStateChanged(SipRegistrationState.FAILED)
             callback(false, e.message)
         }
     }
 
     fun unregister() {
+        cancelRegistrationTimeout()
         try {
             val engine = Receiver.mSipdroidEngine
             engine?.halt()

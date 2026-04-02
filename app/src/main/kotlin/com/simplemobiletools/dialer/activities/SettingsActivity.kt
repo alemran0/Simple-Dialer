@@ -514,7 +514,7 @@ class SettingsActivity : SimpleActivity() {
             SipRegistrationState.DISCONNECTED -> getString(R.string.sip_status_disconnected)
             SipRegistrationState.CONNECTING -> getString(R.string.sip_status_connecting)
             SipRegistrationState.REGISTERED -> getString(R.string.sip_status_registered)
-            SipRegistrationState.ERROR -> getString(R.string.sip_status_error)
+            SipRegistrationState.FAILED -> getString(R.string.sip_status_failed)
         }
         updateSipConnectButton()
     }

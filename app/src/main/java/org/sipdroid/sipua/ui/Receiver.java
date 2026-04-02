@@ -74,6 +74,8 @@ public class Receiver extends BroadcastReceiver {
         void onCallStateChanged(int state, String caller);
         void onRegistered();
         void onUnregistered();
+        /** Called when registration fails permanently (no more retries). */
+        void onRegistrationFailed(String reason);
     }
 
     public static StateListener stateListener;
@@ -96,6 +98,12 @@ public class Receiver extends BroadcastReceiver {
     public static void registered() {
         if (stateListener != null) {
             stateListener.onRegistered();
+        }
+    }
+
+    public static void registrationFailed(String reason) {
+        if (stateListener != null) {
+            stateListener.onRegistrationFailed(reason);
         }
     }
 

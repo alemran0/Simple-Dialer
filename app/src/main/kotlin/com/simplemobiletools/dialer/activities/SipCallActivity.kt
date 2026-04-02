@@ -80,6 +80,7 @@ class SipCallActivity : SimpleActivity() {
 
         override fun onRegistered() {}
         override fun onUnregistered() {}
+        override fun onRegistrationFailed(reason: String) {}
     }
 
     /** The wrapper's own listener, saved before we replace it, so we can restore it on destroy. */
