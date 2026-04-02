@@ -473,10 +473,14 @@ public class SipdroidEngine implements RegisterAgentListener {
 			register();
 			if (!wl[i].isHeld() && pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
 			if (!wl[i].isHeld() && wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
-		} else if (wl[i].isHeld()) {
-			wl[i].release();
-			if (pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
-			if (wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
+		} else {
+			// Not retrying – surface the failure to the app UI so it can leave "Connecting" state.
+			Receiver.registrationFailed(result);
+			if (wl[i].isHeld()) {
+				wl[i].release();
+				if (pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
+				if (wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
+			}
 		}
 		if (SystemClock.uptimeMillis() > lasthalt + 45000) {
 			lasthalt = SystemClock.uptimeMillis();
