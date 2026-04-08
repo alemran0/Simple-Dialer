@@ -45,8 +45,11 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 public class SipdroidEngine implements RegisterAgentListener {
+
+	private static final String TAG = "SIP_REG";
 
 	public static final int LINES = 2;
 	public int pref;
@@ -263,7 +266,7 @@ public class SipdroidEngine implements RegisterAgentListener {
 	}
 	
 	public void registerMore() {
-		if (Receiver.sContext == null) return;
+		if (Receiver.mContext == null) return;
 		IpAddress.setLocalIpAddress();
 		int i = 0,c = 0;
 		for (RegisterAgent ra : ras) {
@@ -294,7 +297,7 @@ public class SipdroidEngine implements RegisterAgentListener {
 	}
 	
 	public void register() {
-		if (Receiver.sContext == null) return;
+		if (Receiver.mContext == null) return;
 		IpAddress.setLocalIpAddress();
 		int i = 0,c = 0;
 		for (RegisterAgent ra : ras) {
@@ -359,7 +362,7 @@ public class SipdroidEngine implements RegisterAgentListener {
 
 	public boolean isRegistered()
 	{
-		if (Receiver.sContext == null) return false;
+		if (Receiver.mContext == null) return false;
 		for (RegisterAgent ra : ras)
 			if (ra != null && ra.isRegistered())
 				return true;
@@ -391,6 +394,7 @@ public class SipdroidEngine implements RegisterAgentListener {
     		if (ra == reg_ra) break;
     		i++;
     	}
+    	Log.d(TAG, "onUaRegistrationSuccess: line=" + i + " result=" + result + " registered=" + isRegistered(i));
 		if (isRegistered(i)) {
 			if (Receiver.on_wlan && getKeepaliveInterval(i) > 0)
 				Receiver.alarm(getKeepaliveInterval(i), LoopAlarm.class);
@@ -443,6 +447,7 @@ public class SipdroidEngine implements RegisterAgentListener {
     		if (ra == reg_ra) break;
     		i++;
     	}
+    	Log.d(TAG, "onUaRegistrationFailure: line=" + i + " result=" + result);
     	if (isRegistered(i)) {
     		reg_ra.CurrentState = RegisterAgent.UNREGISTERED;
     		Receiver.onText(Receiver.REGISTER_NOTIFICATION+i, null, 0, 0);
@@ -473,10 +478,14 @@ public class SipdroidEngine implements RegisterAgentListener {
 			register();
 			if (!wl[i].isHeld() && pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
 			if (!wl[i].isHeld() && wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
-		} else if (wl[i].isHeld()) {
-			wl[i].release();
-			if (pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
-			if (wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
+		} else {
+			if (wl[i].isHeld()) {
+				wl[i].release();
+				if (pwl[i] != null && pwl[i].isHeld()) pwl[i].release();
+				if (wwl[i] != null && wwl[i].isHeld()) wwl[i].release();
+			}
+			// Notify the app layer so the UI exits "Connecting…" and shows a failure message.
+			Receiver.onRegistrationFailed(result);
 		}
 		if (SystemClock.uptimeMillis() > lasthalt + 45000) {
 			lasthalt = SystemClock.uptimeMillis();

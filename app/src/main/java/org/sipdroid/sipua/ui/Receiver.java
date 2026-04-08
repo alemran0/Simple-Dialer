@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.os.SystemClock;
+import android.util.Log;
 
 import org.sipdroid.sipua.SipdroidEngine;
 import org.sipdroid.sipua.UserAgent;
@@ -41,6 +42,8 @@ import java.util.List;
  * This replaces the full sipdroid Receiver which depended on sipdroid's own UI.
  */
 public class Receiver extends BroadcastReceiver {
+
+    private static final String TAG = "SIP_REG";
 
     public static final int REGISTER_NOTIFICATION = 1;
     public static final int REGISTER_NOTIFICATION_0 = 1;
@@ -74,6 +77,12 @@ public class Receiver extends BroadcastReceiver {
         void onCallStateChanged(int state, String caller);
         void onRegistered();
         void onUnregistered();
+
+        /** Called when registration definitively fails (auth error, server unreachable, etc.). */
+        default void onRegistrationFailed(String reason) {
+            // Default: treat as unregistered so existing implementations get notified.
+            onUnregistered();
+        }
     }
 
     public static StateListener stateListener;
@@ -88,14 +97,24 @@ public class Receiver extends BroadcastReceiver {
 
     public static void onState(int state, String caller) {
         call_state = state;
+        Log.d(TAG, "onState: state=" + state + " caller=" + caller);
         if (stateListener != null) {
             stateListener.onCallStateChanged(state, caller);
         }
     }
 
     public static void registered() {
+        Log.d(TAG, "registered() fired");
         if (stateListener != null) {
             stateListener.onRegistered();
+        }
+    }
+
+    /** Called by SipdroidEngine when registration definitively fails. */
+    public static void onRegistrationFailed(String reason) {
+        Log.d(TAG, "onRegistrationFailed: reason=" + reason);
+        if (stateListener != null) {
+            stateListener.onRegistrationFailed(reason);
         }
     }
 
