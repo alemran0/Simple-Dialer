@@ -191,6 +191,7 @@ class DialpadActivity : SimpleActivity() {
         binding.dialpadClearChar.applyColorFilter(getProperTextColor())
         updateNavigationBarColor(getProperBackgroundColor())
         setupToolbar(binding.dialpadToolbar, NavigationIcon.Arrow)
+        updateSipButton()
     }
 
     private fun setupOptionsMenu() {
@@ -332,8 +333,8 @@ class DialpadActivity : SimpleActivity() {
     private fun initCall(number: String = binding.dialpadInput.value, handleIndex: Int) {
         if (number.isNotEmpty()) {
             val sipWrapper = SipManagerWrapper.getInstance(this)
-            if (sipWrapper.isRegistered) {
-                // SIP is registered – offer SIM1/SIM2/SIP chooser
+            if (sipWrapper.isRegistered && handleIndex == -1) {
+                // Speed dial or other no-handle context when SIP is registered – offer chooser
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
                         showCallAccountChooser(number)
@@ -361,6 +362,18 @@ class DialpadActivity : SimpleActivity() {
         }
     }
 
+    private fun initSipCall(number: String = binding.dialpadInput.value) {
+        if (number.isNotEmpty()) {
+            if (config.showCallConfirmation) {
+                CallConfirmationDialog(this, number) {
+                    startActivity(SipCallActivity.getOutgoingCallIntent(this, number))
+                }
+            } else {
+                startActivity(SipCallActivity.getOutgoingCallIntent(this, number))
+            }
+        }
+    }
+
     private fun showCallAccountChooser(number: String) {
         val sipLabel = getString(R.string.sip_option_label, config.sipUsername + "@" + config.sipServer)
         SelectCallAccountDialog(this, number, sipLabel) { handle, isSip ->
@@ -371,6 +384,24 @@ class DialpadActivity : SimpleActivity() {
                 launchCallIntent(number, handle)
             } else {
                 startCallIntent(number)
+            }
+        }
+    }
+
+    private fun updateSipButton() {
+        val properPrimaryColor = getProperPrimaryColor()
+        val isRegistered = SipManagerWrapper.getInstance(this).isRegistered
+        binding.apply {
+            if (isRegistered) {
+                val sipIcon = resources.getColoredDrawableWithColor(R.drawable.ic_phone_sip_vector, properPrimaryColor.getContrastColor())
+                dialpadCallSipButton.setImageDrawable(sipIcon)
+                dialpadCallSipButton.background.applyColorFilter(properPrimaryColor)
+                dialpadCallSipButton.beVisible()
+                dialpadCallSipButton.setOnClickListener {
+                    initSipCall(dialpadInput.value)
+                }
+            } else {
+                dialpadCallSipButton.beGone()
             }
         }
     }

@@ -107,6 +107,8 @@
     <string name="sip_call_channel_name">SIP Calls</string>
     <string name="sip_call_channel_description">Notifications for incoming SIP calls</string>
     <string name="sip_option_label">SIP (%1$s)</string>
+    <string name="sip_call">Call via SIP</string>
+    <string name="calling_accounts">Calling Accounts</string>
     <string name="incoming_sip_call">Incoming SIP Call</string>
 
     <!-- Sipdroid SIP stack resources -->

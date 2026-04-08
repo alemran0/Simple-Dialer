@@ -140,5 +140,21 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/dialpad_call_button" />
 
+        <ImageView
+            android:id="@+id/dialpad_call_sip_button"
+            android:layout_width="@dimen/dialpad_button_size_small"
+            android:layout_height="@dimen/dialpad_button_size_small"
+            android:layout_marginBottom="@dimen/activity_margin"
+            android:background="@drawable/circle_button_background_ripple"
+            android:contentDescription="@string/sip_call"
+            android:elevation="@dimen/medium_margin"
+            android:padding="@dimen/normal_margin"
+            android:src="@drawable/ic_phone_sip_vector"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/dialpad_call_button"
+            app:layout_constraintTop_toTopOf="@+id/dialpad_call_button" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
