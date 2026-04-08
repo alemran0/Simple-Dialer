@@ -37,6 +37,10 @@ import java.util.*
 import kotlin.math.roundToInt
 
 class DialpadActivity : SimpleActivity() {
+    companion object {
+        private const val NO_HANDLE_SELECTED = -1
+    }
+
     private val binding by viewBinding(ActivityDialpadBinding::inflate)
 
     private var allContacts = ArrayList<Contact>()
@@ -333,7 +337,7 @@ class DialpadActivity : SimpleActivity() {
     private fun initCall(number: String = binding.dialpadInput.value, handleIndex: Int) {
         if (number.isNotEmpty()) {
             val sipWrapper = SipManagerWrapper.getInstance(this)
-            if (sipWrapper.isRegistered && handleIndex == -1) {
+            if (sipWrapper.isRegistered && handleIndex == NO_HANDLE_SELECTED) {
                 // Speed dial or other no-handle context when SIP is registered – offer chooser
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
@@ -342,7 +346,7 @@ class DialpadActivity : SimpleActivity() {
                 } else {
                     showCallAccountChooser(number)
                 }
-            } else if (handleIndex != -1 && areMultipleSIMsAvailable()) {
+            } else if (handleIndex != NO_HANDLE_SELECTED && areMultipleSIMsAvailable()) {
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
                         callContactWithSim(number, handleIndex == 0)
@@ -410,7 +414,7 @@ class DialpadActivity : SimpleActivity() {
         if (binding.dialpadInput.value.length == 1) {
             val speedDial = speedDialValues.firstOrNull { it.id == id }
             if (speedDial?.isValid() == true) {
-                initCall(speedDial.number, -1)
+                initCall(speedDial.number, NO_HANDLE_SELECTED)
                 return true
             }
         }
