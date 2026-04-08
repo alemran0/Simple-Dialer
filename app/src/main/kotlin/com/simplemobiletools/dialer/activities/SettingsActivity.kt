@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.telecom.TelecomManager
 import android.text.InputType
 import android.view.Menu
 import android.widget.EditText
@@ -95,6 +96,7 @@ class SettingsActivity : SimpleActivity() {
         setupAlwaysShowFullscreen()
         setupCallsExport()
         setupCallsImport()
+        setupCallingAccounts()
         setupSipAccount()
         updateTextColors(binding.settingsHolder)
 
@@ -394,6 +396,18 @@ class SettingsActivity : SimpleActivity() {
                 toast(R.string.exporting_successful)
             } catch (e: Exception) {
                 showErrorToast(e)
+            }
+        }
+    }
+
+    private fun setupCallingAccounts() {
+        binding.settingsCallingAccountsHolder.setOnClickListener {
+            Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS).apply {
+                try {
+                    startActivity(this)
+                } catch (e: Exception) {
+                    toast(R.string.unknown_error_occurred)
+                }
             }
         }
     }

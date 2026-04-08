@@ -37,6 +37,10 @@ import java.util.*
 import kotlin.math.roundToInt
 
 class DialpadActivity : SimpleActivity() {
+    companion object {
+        private const val NO_HANDLE_SELECTED = -1
+    }
+
     private val binding by viewBinding(ActivityDialpadBinding::inflate)
 
     private var allContacts = ArrayList<Contact>()
@@ -191,6 +195,7 @@ class DialpadActivity : SimpleActivity() {
         binding.dialpadClearChar.applyColorFilter(getProperTextColor())
         updateNavigationBarColor(getProperBackgroundColor())
         setupToolbar(binding.dialpadToolbar, NavigationIcon.Arrow)
+        updateSipButton()
     }
 
     private fun setupOptionsMenu() {
@@ -332,8 +337,8 @@ class DialpadActivity : SimpleActivity() {
     private fun initCall(number: String = binding.dialpadInput.value, handleIndex: Int) {
         if (number.isNotEmpty()) {
             val sipWrapper = SipManagerWrapper.getInstance(this)
-            if (sipWrapper.isRegistered) {
-                // SIP is registered – offer SIM1/SIM2/SIP chooser
+            if (sipWrapper.isRegistered && handleIndex == NO_HANDLE_SELECTED) {
+                // Speed dial or other no-handle context when SIP is registered – offer chooser
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
                         showCallAccountChooser(number)
@@ -341,7 +346,7 @@ class DialpadActivity : SimpleActivity() {
                 } else {
                     showCallAccountChooser(number)
                 }
-            } else if (handleIndex != -1 && areMultipleSIMsAvailable()) {
+            } else if (handleIndex != NO_HANDLE_SELECTED && areMultipleSIMsAvailable()) {
                 if (config.showCallConfirmation) {
                     CallConfirmationDialog(this, number) {
                         callContactWithSim(number, handleIndex == 0)
@@ -361,6 +366,18 @@ class DialpadActivity : SimpleActivity() {
         }
     }
 
+    private fun initSipCall(number: String = binding.dialpadInput.value) {
+        if (number.isNotEmpty()) {
+            if (config.showCallConfirmation) {
+                CallConfirmationDialog(this, number) {
+                    startActivity(SipCallActivity.getOutgoingCallIntent(this, number))
+                }
+            } else {
+                startActivity(SipCallActivity.getOutgoingCallIntent(this, number))
+            }
+        }
+    }
+
     private fun showCallAccountChooser(number: String) {
         val sipLabel = getString(R.string.sip_option_label, config.sipUsername + "@" + config.sipServer)
         SelectCallAccountDialog(this, number, sipLabel) { handle, isSip ->
@@ -375,11 +392,29 @@ class DialpadActivity : SimpleActivity() {
         }
     }
 
+    private fun updateSipButton() {
+        val properPrimaryColor = getProperPrimaryColor()
+        val isRegistered = SipManagerWrapper.getInstance(this).isRegistered
+        binding.apply {
+            if (isRegistered) {
+                val sipIcon = resources.getColoredDrawableWithColor(R.drawable.ic_phone_sip_vector, properPrimaryColor.getContrastColor())
+                dialpadCallSipButton.setImageDrawable(sipIcon)
+                dialpadCallSipButton.background.applyColorFilter(properPrimaryColor)
+                dialpadCallSipButton.beVisible()
+                dialpadCallSipButton.setOnClickListener {
+                    initSipCall(dialpadInput.value)
+                }
+            } else {
+                dialpadCallSipButton.beGone()
+            }
+        }
+    }
+
     private fun speedDial(id: Int): Boolean {
         if (binding.dialpadInput.value.length == 1) {
             val speedDial = speedDialValues.firstOrNull { it.id == id }
             if (speedDial?.isValid() == true) {
-                initCall(speedDial.number, -1)
+                initCall(speedDial.number, NO_HANDLE_SELECTED)
                 return true
             }
         }
